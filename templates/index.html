@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upcoming Renewals</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f6f7fb;
+            padding: 20px;
+        }
+        h2 {
+            margin-bottom: 15px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+            text-align: left;
+        }
+        th {
+            background: #f1f1f1;
+        }
+        tr:hover {
+            background: #fafafa;
+        }
+        .amount {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Upcoming Renewals</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th>User ID</th>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Plan</th>
+            <th>Billing</th>
+            <th>Amount</th>
+            <th>Mobile</th>
+            <th>Expiry Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for r in rows %}
+        <tr>
+            <td>{{ r.UserId }}</td>
+            <td>{{ r.CustName }}</td>
+            <td>{{ r.StatusName }}</td>
+            <td>{{ r.PlanName }}</td>
+            <td>{{ r.BillingName }}</td>
+            <td class="amount">{{ r.Amount }}</td>
+            <td>{{ r.MobileNo }}</td>
+            <td>{{ r.PlanExpiryDate }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+</body>
+</html>
