@@ -40,17 +40,63 @@ def auto_login():
         page = context.new_page()
 
         page.goto(LOGIN_URL, timeout=30000)
+        page.wait_for_load_state("domcontentloaded")
 
-        # Robust selectors + waits (CRITICAL FIX)
-        page.wait_for_selector("input[name='UserName']", timeout=15000)
-        page.fill("input[name='UserName']", USERNAME)
+        # ---------- detect iframe if login form is inside ----------
+        login_frame = page
+        for frame in page.frames:
+            if "login" in frame.url.lower() or "account" in frame.url.lower():
+                login_frame = frame
+                break
 
-        page.wait_for_selector("input[name='Password']", timeout=15000)
-        page.fill("input[name='Password']", PASSWORD)
+        # ---------- flexible selectors ----------
+        username_selectors = [
+            "input[name='UserName']",
+            "input[name='Username']",
+            "input[name='LoginId']",
+            "input[name='Email']",
+            "input[type='text']"
+        ]
 
-        page.click("button[type='submit']")
+        password_selectors = [
+            "input[name='Password']",
+            "input[name='PassWord']",
+            "input[type='password']"
+        ]
+
+        # ---------- fill username ----------
+        for sel in username_selectors:
+            try:
+                login_frame.wait_for_selector(sel, timeout=5000)
+                login_frame.fill(sel, USERNAME)
+                break
+            except:
+                continue
+        else:
+            browser.close()
+            raise RuntimeError("Username field not found on login page")
+
+        # ---------- fill password ----------
+        for sel in password_selectors:
+            try:
+                login_frame.wait_for_selector(sel, timeout=5000)
+                login_frame.fill(sel, PASSWORD)
+                break
+            except:
+                continue
+        else:
+            browser.close()
+            raise RuntimeError("Password field not found on login page")
+
+        # ---------- submit ----------
+        try:
+            login_frame.click("button[type='submit']")
+        except:
+            login_frame.click("input[type='submit']")
+
         page.wait_for_load_state("networkidle", timeout=30000)
 
+        # ---------- save cookies ----------
         cookies = context.cookies()
         with open(COOKIE_FILE, "w") as f:
             json.dump(cookies, f)
@@ -59,7 +105,6 @@ def auto_login():
 
 
 def load_cookie_header():
-    # Login ONLY if cookies do not exist
     if not os.path.exists(COOKIE_FILE):
         auto_login()
 
@@ -93,7 +138,7 @@ def dotnet_date(value):
 def index():
     r = requests.post(API_URL, headers=headers(), data=PAYLOAD, timeout=20)
 
-    # If session expired, re-login ONCE only
+    # Session expired → re-login ONCE
     if r.status_code in (401, 302):
         if os.path.exists(COOKIE_FILE):
             os.remove(COOKIE_FILE)
