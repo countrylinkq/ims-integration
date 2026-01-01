@@ -39,14 +39,17 @@ def auto_login():
         context = browser.new_context()
         page = context.new_page()
 
-        page.goto(LOGIN_URL)
+        page.goto(LOGIN_URL, timeout=30000)
 
-        # VERIFY THESE IDs ONCE
-        page.fill("#UserName", USERNAME)
-        page.fill("#Password", PASSWORD)
-        page.click("button[type=submit]")
+        # Robust selectors + waits (CRITICAL FIX)
+        page.wait_for_selector("input[name='UserName']", timeout=15000)
+        page.fill("input[name='UserName']", USERNAME)
 
-        page.wait_for_load_state("networkidle")
+        page.wait_for_selector("input[name='Password']", timeout=15000)
+        page.fill("input[name='Password']", PASSWORD)
+
+        page.click("button[type='submit']")
+        page.wait_for_load_state("networkidle", timeout=30000)
 
         cookies = context.cookies()
         with open(COOKIE_FILE, "w") as f:
@@ -56,6 +59,7 @@ def auto_login():
 
 
 def load_cookie_header():
+    # Login ONLY if cookies do not exist
     if not os.path.exists(COOKIE_FILE):
         auto_login()
 
@@ -87,12 +91,14 @@ def dotnet_date(value):
 # ==============================
 @app.route("/")
 def index():
-    r = requests.post(API_URL, headers=headers(), data=PAYLOAD)
+    r = requests.post(API_URL, headers=headers(), data=PAYLOAD, timeout=20)
 
-    # Session expired → auto re-login
+    # If session expired, re-login ONCE only
     if r.status_code in (401, 302):
+        if os.path.exists(COOKIE_FILE):
+            os.remove(COOKIE_FILE)
         auto_login()
-        r = requests.post(API_URL, headers=headers(), data=PAYLOAD)
+        r = requests.post(API_URL, headers=headers(), data=PAYLOAD, timeout=20)
 
     r.raise_for_status()
     rows = r.json().get("data", [])
